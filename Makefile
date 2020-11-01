@@ -1,8 +1,11 @@
 CC = gcc -Wall -c
-OBJS = queue.o heap.o process.o
+OBJS = queue.o heap.o process.o algorithms.o
 
 main.out : $(OBJS)
 	gcc main.c -Wall -o main.out $(OBJS)
+
+algorithms.o : algorithms.c algorithms.h
+	$(CC) algorithms.c
 
 queue.o : queue.c queue.h
 	$(CC) queue.c
