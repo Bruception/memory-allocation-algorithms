@@ -21,7 +21,11 @@ typedef struct free_list_node_struct {
 void print_list(free_list_node* fl) {
     free_list_node* current = fl;
     while (current != NULL) {
-        printf("(size: %d, Empty: %d) -> ", current->size, current->empty);
+        printf("(size: %d", current->size);
+        if (!current->empty) {
+            printf(", ID: %d", current->p->id);
+        }
+        printf(") -> ");
         current = current->next;
     }
     printf("\n");
@@ -138,6 +142,9 @@ perf_data* first_fit(process** processes, int process_list_size, int block_size)
             next_process = (process*)remove_min_from_heap(entry_time_heap);
             attempt_first_fit_allocation(next_process, fl, pfd, current_time, wait_queue);
         }
+        printf("--------------------------------\n");
+        printf("Current Time: %d\n", current_time);
+        print_list(fl);
         ++current_time;
     }
     return pfd;
