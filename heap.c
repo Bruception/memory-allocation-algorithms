@@ -62,14 +62,14 @@ void sink(heap* h) {
 void* remove_min_from_heap(heap* h) {
   if (h->size == 0) return NULL;
   heap_node* top = h->nodes[0];
-  void* top_process = top->data;
+  void* top_data = top->data;
   h->nodes[0] = h->nodes[h->size - 1];
   h->nodes[h->size - 1] = top;
   free(h->nodes[h->size - 1]);
   h->nodes[h->size - 1] = NULL;
   --h->size;
   sink(h);
-  return top_process;
+  return top_data;
 }
 
 void* get_min_from_heap(heap* h) {
