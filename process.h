@@ -9,6 +9,6 @@ typedef struct process_struct {
     int duration;
 } process;
 
-process* create_process(int id, int size, int entry_time, int duration);
+process* create_process(int id, int size, int entry_time, int exit_time);
 
 #endif
