@@ -215,8 +215,25 @@ perf_data* best_fit(process** processes, int process_list_size, int block_size) 
 }
 
 // Finds the largest large enough block
+free_list* worst_fit_allocation(free_list* head, process* p, perf_data* pfd) {
+    free_list* current = head;
+    int best_block_size = -1;
+    free_list* worst = NULL;
+    while (current != NULL) {
+        if (p->size <= current->size && current->empty) {
+            best_block_size = (best_block_size == -1) ? current->size : -1;
+            if (current->size >= best_block_size) {
+                best_block_size = current->size;
+                worst = current;
+            }
+        }
+        current = current->next;
+        ++pfd->iterations;
+    }
+    return worst;
+}
 perf_data* worst_fit(process** processes, int process_list_size, int block_size) {
-    return NULL;
+    return execute_allocation_algorithm(&worst_fit_allocation, processes, process_list_size, block_size);
 }
 
 perf_data* next_fit(process** processes, int process_list_size, int block_size) {
