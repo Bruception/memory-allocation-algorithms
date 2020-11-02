@@ -105,7 +105,7 @@ double calculate_external_fragmentation(free_list* fl) {
     return (total_free_bytes - max_free_size) / (double)total_free_bytes * 100.0;
 }
 
-void attempt_allocation(
+free_list* attempt_allocation(
     free_list* (*allocation_algorithm)(free_list* head, process* p, perf_data* pfd),
     free_list* fl,
     process* p,
@@ -126,10 +126,11 @@ void attempt_allocation(
         p->actual_entry_time = current_time;
         current->empty = 0;
         current->p = p;
-        return;
+        return current->next;
     }
     ++pfd->failed_allocations;
     add_to_queue(wait_queue, (void*)p);
+    return current;
 }
 
 perf_data* execute_allocation_algorithm(
@@ -232,10 +233,51 @@ free_list* worst_fit_allocation(free_list* head, process* p, perf_data* pfd) {
     }
     return worst;
 }
+
 perf_data* worst_fit(process** processes, int process_list_size, int block_size) {
     return execute_allocation_algorithm(&worst_fit_allocation, processes, process_list_size, block_size);
 }
 
 perf_data* next_fit(process** processes, int process_list_size, int block_size) {
-    return NULL;
+    perf_data* pfd = create_perf_data();
+    free_list* fl = create_free_list(block_size);
+    free_list* last_node = fl;
+    queue* wait_queue = create_queue();
+    heap* entry_time_heap = init_entry_time_heap(processes, process_list_size);
+    int exited = 0;
+    int current_time = 0;
+    int queue_size;
+    process* next_process;
+    double average_external_frag = 0;
+    double external_frag = 0;
+    while (exited < process_list_size) {
+        exited += remove_exited_processes(fl, current_time);
+        queue_size = wait_queue->size;
+        for (int i = 0; i < queue_size; ++i) {
+            next_process = (process*)remove_from_queue(wait_queue);
+            last_node = attempt_allocation(&first_fit_allocation, last_node, next_process, pfd, current_time, wait_queue);
+            if (last_node == NULL) {
+                last_node = fl;
+            }
+        }
+        while (
+            entry_time_heap->size > 0
+            && ((process*)get_min_from_heap(entry_time_heap))->entry_time <= current_time
+        ) {
+            next_process = (process*)remove_min_from_heap(entry_time_heap);
+            last_node = attempt_allocation(&first_fit_allocation, last_node, next_process, pfd, current_time, wait_queue);
+            if (last_node == NULL) {
+                last_node = fl;
+            }
+        }
+        printf("--------------------------------\n");
+        printf("Current Time: %d\n", current_time);
+        print_list(fl);
+        external_frag = calculate_external_fragmentation(fl);
+        average_external_frag += calculate_external_fragmentation(fl);
+        printf("External Fragmentation: %.2lf%%\n", external_frag);
+        ++current_time;
+    }
+    pfd->average_external_frag = average_external_frag / current_time;
+    return pfd;
 }
