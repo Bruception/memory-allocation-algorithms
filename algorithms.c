@@ -11,15 +11,15 @@ int compare_entry_time(void* p1, void* p2) {
     return pp1->entry_time - pp2->entry_time;
 }
 
-typedef struct free_list_node_struct {
-    struct free_list_node_struct* next;
+typedef struct free_list_struct {
+    struct free_list_struct* next;
     unsigned int size;
     unsigned short empty;
     process* p;
-} free_list_node;
+} free_list;
 
-void print_list(free_list_node* fl) {
-    free_list_node* current = fl;
+void print_list(free_list* fl) {
+    free_list* current = fl;
     while (current != NULL) {
         printf("(size: %d", current->size);
         if (!current->empty) {
@@ -31,10 +31,10 @@ void print_list(free_list_node* fl) {
     printf("\n");
 }
 
-void merge_empty_nodes(free_list_node* fl) {
-    free_list_node* current = fl;
+void merge_empty_nodes(free_list* fl) {
+    free_list* current = fl;
     while (current != NULL) {
-        free_list_node* next = current->next;
+        free_list* next = current->next;
         while (current->empty && next != NULL && next->empty) {
             current->size += next->size;
             current->next = next->next;
@@ -45,9 +45,9 @@ void merge_empty_nodes(free_list_node* fl) {
     }
 }
 
-int remove_exited_processes(free_list_node* fl, int current_time) {
+int remove_exited_processes(free_list* fl, int current_time) {
     int exited = 0;
-    free_list_node* current = fl;
+    free_list* current = fl;
     while (current != NULL) {
         process* p = current->p;
         if (current->p != NULL && (p->actual_entry_time + p->duration) <= current_time) {
@@ -65,12 +65,12 @@ perf_data* create_perf_data() {
     perf_data* pf = (perf_data*)malloc(sizeof(perf_data));
     pf->average_external_frag = 0;
     pf->failed_allocations = 0;
-    pf->iter_steps = 0;
+    pf->iterations = 0;
     return pf;
 }
 
-free_list_node* create_free_list(int block_size) {
-    free_list_node* fl = (free_list_node*)malloc(sizeof(free_list_node));
+free_list* create_free_list(int block_size) {
+    free_list* fl = (free_list*)malloc(sizeof(free_list));
     fl->size = block_size;
     fl->next = NULL;
     fl->empty = 1;
@@ -86,26 +86,45 @@ heap* init_entry_time_heap(process** processes, int process_list_size) {
     return entry_time_heap;
 }
 
+double calculate_external_fragmentation(free_list* fl) {
+    int total_free_bytes = 0;
+    int max_free_size = 0;
+    free_list* current = fl;
+    while(current != NULL) {
+        if (current->empty) {
+            if (current->size > max_free_size) {
+                max_free_size = current->size;
+            }
+            total_free_bytes += current->size;
+        }
+        current = current->next;
+    }
+    if (total_free_bytes == 0) {
+        return 0;
+    }
+    return (total_free_bytes - max_free_size) / (double)total_free_bytes * 100.0;
+}
+
 void attempt_first_fit_allocation(
     process* p,
-    free_list_node* fl,
+    free_list* fl,
     perf_data* pfd,
     int current_time,
     queue* wait_queue
 ) {
-    free_list_node* current = fl;
+    free_list* current = fl;
     while (current != NULL) {
         if (p->size <= current->size && current->empty) {
             break;
         }
         current = current->next;
-        ++pfd->iter_steps;
+        ++pfd->iterations;
     }
     if (current != NULL) {
         int remainingSize = current->size - p->size;
         if (remainingSize > 0) {
-            free_list_node* new_node = create_free_list(remainingSize);
-            free_list_node* prev_next = current->next;
+            free_list* new_node = create_free_list(remainingSize);
+            free_list* prev_next = current->next;
             new_node->next = prev_next;
             current->next = new_node;
             current->size = p->size;
@@ -121,13 +140,15 @@ void attempt_first_fit_allocation(
 
 perf_data* first_fit(process** processes, int process_list_size, int block_size) {
     perf_data* pfd = create_perf_data();
-    free_list_node* fl = create_free_list(block_size);
+    free_list* fl = create_free_list(block_size);
     queue* wait_queue = create_queue();
     heap* entry_time_heap = init_entry_time_heap(processes, process_list_size);
     int exited = 0;
     int current_time = 0;
     int queue_size;
     process* next_process;
+    double average_external_frag = 0;
+    double external_frag = 0;
     while (exited < process_list_size) {
         exited += remove_exited_processes(fl, current_time);
         queue_size = wait_queue->size;
@@ -145,8 +166,12 @@ perf_data* first_fit(process** processes, int process_list_size, int block_size)
         printf("--------------------------------\n");
         printf("Current Time: %d\n", current_time);
         print_list(fl);
+        external_frag = calculate_external_fragmentation(fl);
+        average_external_frag += calculate_external_fragmentation(fl);
+        printf("External Fragmentation: %.2lf%%\n", external_frag);
         ++current_time;
     }
+    pfd->average_external_frag = average_external_frag / (current_time);
     return pfd;
 }
 

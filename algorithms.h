@@ -6,7 +6,7 @@
 typedef struct perf_data_struct {
     double average_external_frag;
     int failed_allocations;
-    int iter_steps;
+    int iterations;
 } perf_data;
 
 perf_data* first_fit(process** processes, int process_list_size, int block_size);
