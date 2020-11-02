@@ -11,7 +11,7 @@ int main() {
     process_list[2] = create_process(2, 91, 0, 7);
     process_list[3] = create_process(3, 1089, 0, 5);
     process_list[4] = create_process(4, 238, 0, 9);
-    perf_data* pfd = best_fit(process_list, size, 1100);
+    perf_data* pfd = worst_fit(process_list, size, 1100);
     printf("--------------------------------\n");
     // Average verified with: ./main.out | grep "^External" | cut -d' ' -f3 | sed -e 's/%//g' | awk '{ ++total; sum += $1 } END { print "Average:", sum/total }'
     printf("Results:\n\tFailed Allocations: %d\n\tIterations: %d\n\tAverage External Fragmentation: %.2lf%%\n", pfd->failed_allocations, pfd->iterations, pfd->average_external_frag);
