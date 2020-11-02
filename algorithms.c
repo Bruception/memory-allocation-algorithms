@@ -105,21 +105,15 @@ double calculate_external_fragmentation(free_list* fl) {
     return (total_free_bytes - max_free_size) / (double)total_free_bytes * 100.0;
 }
 
-void attempt_first_fit_allocation(
-    process* p,
+void attempt_allocation(
+    free_list* (*allocation_algorithm)(free_list* head, process* p, perf_data* pfd),
     free_list* fl,
+    process* p,
     perf_data* pfd,
     int current_time,
     queue* wait_queue
 ) {
-    free_list* current = fl;
-    while (current != NULL) {
-        if (p->size <= current->size && current->empty) {
-            break;
-        }
-        current = current->next;
-        ++pfd->iterations;
-    }
+    free_list* current = allocation_algorithm(fl, p, pfd);
     if (current != NULL) {
         int remainingSize = current->size - p->size;
         if (remainingSize > 0) {
@@ -138,7 +132,12 @@ void attempt_first_fit_allocation(
     add_to_queue(wait_queue, (void*)p);
 }
 
-perf_data* first_fit(process** processes, int process_list_size, int block_size) {
+perf_data* execute_allocation_algorithm(
+    free_list* (*allocation_algorithm)(free_list* head, process* p, perf_data* pfd),
+    process** processes,
+    int process_list_size,
+    int block_size
+) {
     perf_data* pfd = create_perf_data();
     free_list* fl = create_free_list(block_size);
     queue* wait_queue = create_queue();
@@ -154,14 +153,14 @@ perf_data* first_fit(process** processes, int process_list_size, int block_size)
         queue_size = wait_queue->size;
         for (int i = 0; i < queue_size; ++i) {
             next_process = (process*)remove_from_queue(wait_queue);
-            attempt_first_fit_allocation(next_process, fl, pfd, current_time, wait_queue);
+            attempt_allocation(allocation_algorithm, fl, next_process, pfd, current_time, wait_queue);
         }
         while (
             entry_time_heap->size > 0
             && ((process*)get_min_from_heap(entry_time_heap))->entry_time <= current_time
         ) {
             next_process = (process*)remove_min_from_heap(entry_time_heap);
-            attempt_first_fit_allocation(next_process, fl, pfd, current_time, wait_queue);
+            attempt_allocation(allocation_algorithm, fl, next_process, pfd, current_time, wait_queue);
         }
         printf("--------------------------------\n");
         printf("Current Time: %d\n", current_time);
@@ -171,14 +170,51 @@ perf_data* first_fit(process** processes, int process_list_size, int block_size)
         printf("External Fragmentation: %.2lf%%\n", external_frag);
         ++current_time;
     }
-    pfd->average_external_frag = average_external_frag / (current_time);
+    pfd->average_external_frag = average_external_frag / current_time;
     return pfd;
 }
 
-perf_data* best_fit(process** processes, int process_list_size, int block_size) {
-    return NULL;
+// Finds the first large enough block
+free_list* first_fit_allocation(free_list* head, process* p, perf_data* pfd) {
+    free_list* current = head;
+    while (current != NULL) {
+        if (p->size <= current->size && current->empty) {
+            break;
+        }
+        current = current->next;
+        ++pfd->iterations;
+    }
+    return current;
 }
 
+perf_data* first_fit(process** processes, int process_list_size, int block_size) {
+    return execute_allocation_algorithm(&first_fit_allocation, processes, process_list_size, block_size);
+}
+
+// Finds the smallest large enough block
+free_list* best_fit_allocation(free_list* head, process* p, perf_data* pfd) {
+    free_list* current = head;
+    int best_block_size = -1;
+    free_list* best = NULL;
+    while (current != NULL) {
+        if (p->size <= current->size && current->empty) {
+            best_block_size = (best_block_size == -1) ? current->size : -1;
+            if (current->size <= best_block_size) {
+                best_block_size = current->size;
+                best = current;
+            }
+        }
+        current = current->next;
+        ++pfd->iterations;
+    }
+    return best;
+}
+
+perf_data* best_fit(process** processes, int process_list_size, int block_size) {
+    return execute_allocation_algorithm(&best_fit_allocation, processes, process_list_size, block_size);
+}
+
+// Finds the largest large enough block
 perf_data* worst_fit(process** processes, int process_list_size, int block_size) {
     return NULL;
 }
