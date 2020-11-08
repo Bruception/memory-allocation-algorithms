@@ -16,7 +16,7 @@ void printPerformanceData(
     printf("--------------------------------\n");
     double successPercentage = (pfd->attempted_allocations - pfd->failed_allocations) / (double)pfd->attempted_allocations;
     printf("Results:\n");
-    printf("\tAttempts: %d Fails: %d\n", pfd->attempted_allocations, pfd->failed_allocations);
+    printf("\tAllocation attempts: %d Allocation fails: %d\n", pfd->attempted_allocations, pfd->failed_allocations);
     printf("\tAllocation success %%: %.2lf%%\n", successPercentage * 100.0);
     printf("\tIterations: %d\n", pfd->iterations);
     printf("\tAverage External Fragmentation: %.2lf%%\n", pfd->average_external_frag);
