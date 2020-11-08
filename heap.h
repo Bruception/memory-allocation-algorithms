@@ -23,5 +23,6 @@ void add_to_heap(heap* h, void* p);
 void* remove_min_from_heap(heap* h);
 void* get_min_from_heap(heap* h);
 void print_heap(heap* h);
+void destroy_heap(heap* h);
 
 #endif

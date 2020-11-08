@@ -83,3 +83,11 @@ void print_heap(heap* h) {
   }
   printf("\n");
 }
+
+void destroy_heap(heap* h) {
+    for (int i = 0; i < h->size; ++i) {
+        free(h->nodes[i]);
+    }
+    free(h->nodes);
+    free(h);
+}
