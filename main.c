@@ -4,7 +4,8 @@
 #include "algorithms.h"
 
 void printPerformanceData(
-    char* name, perf_data* (*algo)(process**, int, int),
+    char* name,
+    perf_data* (*algo)(process**, int, int),
     process** processes,
     int size,
     int memory_size
