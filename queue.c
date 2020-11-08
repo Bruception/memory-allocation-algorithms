@@ -60,3 +60,16 @@ void print_queue(queue* q) {
   }
   printf("Tail: %p, Next: %p, Prev: %p\n\n", q->tail, q->tail->next, q->tail->prev);
 }
+
+void destroy_queue(queue* q) {
+    queue_node* current = q->head->next;
+    queue_node* next;
+    while(current != NULL && current != q->tail) {
+        next = current->next;
+        free(current);
+        current = next;
+    }
+    free(q->head);
+    free(q->tail);
+    free(q);
+}
