@@ -63,9 +63,10 @@ int remove_exited_processes(free_list* fl, int current_time) {
 
 perf_data* create_perf_data() {
     perf_data* pf = (perf_data*)malloc(sizeof(perf_data));
-    pf->average_external_frag = 0;
+    pf->average_external_frag = 0.0;
     pf->failed_allocations = 0;
     pf->iterations = 0;
+    pf->attempted_allocations = 0;
     return pf;
 }
 
@@ -106,13 +107,14 @@ double calculate_external_fragmentation(free_list* fl) {
 }
 
 free_list* attempt_allocation(
-    free_list* (*allocation_algorithm)(free_list* head, process* p, perf_data* pfd),
+    free_list* (*allocation_algorithm)(free_list*, process*, perf_data*),
     free_list* fl,
     process* p,
     perf_data* pfd,
     int current_time,
     queue* wait_queue
 ) {
+    pfd->attempted_allocations += 1;
     free_list* current = allocation_algorithm(fl, p, pfd);
     if (current != NULL) {
         int remainingSize = current->size - p->size;
@@ -134,7 +136,7 @@ free_list* attempt_allocation(
 }
 
 perf_data* execute_allocation_algorithm(
-    free_list* (*allocation_algorithm)(free_list* head, process* p, perf_data* pfd),
+    free_list* (*allocation_algorithm)(free_list*, process*, perf_data*),
     process** processes,
     int process_list_size,
     int block_size
@@ -172,6 +174,9 @@ perf_data* execute_allocation_algorithm(
         ++current_time;
     }
     pfd->average_external_frag = average_external_frag / current_time;
+    destroy_heap(entry_time_heap);
+    destroy_queue(wait_queue);
+    free(fl);
     return pfd;
 }
 
@@ -279,5 +284,8 @@ perf_data* next_fit(process** processes, int process_list_size, int block_size) 
         ++current_time;
     }
     pfd->average_external_frag = average_external_frag / current_time;
+    destroy_heap(entry_time_heap);
+    destroy_queue(wait_queue);
+    free(fl);
     return pfd;
 }

@@ -6,6 +6,7 @@
 typedef struct perf_data_struct {
     double average_external_frag;
     int failed_allocations;
+    int attempted_allocations;
     int iterations;
 } perf_data;
 
