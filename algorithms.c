@@ -139,7 +139,8 @@ perf_data* execute_allocation_algorithm(
     free_list* (*allocation_algorithm)(free_list*, process*, perf_data*),
     process** processes,
     int process_list_size,
-    int block_size
+    int block_size,
+    int show_verbose
 ) {
     perf_data* pfd = create_perf_data();
     free_list* fl = create_free_list(block_size);
@@ -165,12 +166,14 @@ perf_data* execute_allocation_algorithm(
             next_process = (process*)remove_min_from_heap(entry_time_heap);
             attempt_allocation(allocation_algorithm, fl, next_process, pfd, current_time, wait_queue);
         }
-        printf("--------------------------------\n");
-        printf("Current Time: %d\n", current_time);
-        print_list(fl);
         external_frag = calculate_external_fragmentation(fl);
-        average_external_frag += calculate_external_fragmentation(fl);
-        printf("External Fragmentation: %.2lf%%\n", external_frag);
+        average_external_frag += external_frag;
+        if (show_verbose && current_time % 5 == 0) {
+            printf("--------------------------------\n");
+            printf("Current Time: %d\n", current_time);
+            print_list(fl);
+            printf("External Fragmentation: %.2lf%%\n", external_frag);
+        }
         ++current_time;
     }
     pfd->average_external_frag = average_external_frag / current_time;
@@ -193,8 +196,13 @@ free_list* first_fit_allocation(free_list* head, process* p, perf_data* pfd) {
     return current;
 }
 
-perf_data* first_fit(process** processes, int process_list_size, int block_size) {
-    return execute_allocation_algorithm(&first_fit_allocation, processes, process_list_size, block_size);
+perf_data* first_fit(
+    process** processes,
+    int process_list_size,
+    int block_size,
+    int show_verbose
+) {
+    return execute_allocation_algorithm(&first_fit_allocation, processes, process_list_size, block_size, show_verbose);
 }
 
 // Finds the smallest large enough block
@@ -216,8 +224,13 @@ free_list* best_fit_allocation(free_list* head, process* p, perf_data* pfd) {
     return best;
 }
 
-perf_data* best_fit(process** processes, int process_list_size, int block_size) {
-    return execute_allocation_algorithm(&best_fit_allocation, processes, process_list_size, block_size);
+perf_data* best_fit(
+    process** processes,
+    int process_list_size,
+    int block_size,
+    int show_verbose
+) {
+    return execute_allocation_algorithm(&best_fit_allocation, processes, process_list_size, block_size, show_verbose);
 }
 
 // Finds the largest large enough block
@@ -239,11 +252,16 @@ free_list* worst_fit_allocation(free_list* head, process* p, perf_data* pfd) {
     return worst;
 }
 
-perf_data* worst_fit(process** processes, int process_list_size, int block_size) {
-    return execute_allocation_algorithm(&worst_fit_allocation, processes, process_list_size, block_size);
+perf_data* worst_fit(
+    process** processes,
+    int process_list_size,
+    int block_size,
+    int show_verbose
+) {
+    return execute_allocation_algorithm(&worst_fit_allocation, processes, process_list_size, block_size, show_verbose);
 }
 
-perf_data* next_fit(process** processes, int process_list_size, int block_size) {
+perf_data* next_fit(process** processes, int process_list_size, int block_size, int show_verbose) {
     perf_data* pfd = create_perf_data();
     free_list* fl = create_free_list(block_size);
     free_list* last_node = fl;
@@ -275,12 +293,14 @@ perf_data* next_fit(process** processes, int process_list_size, int block_size) 
                 last_node = fl;
             }
         }
-        printf("--------------------------------\n");
-        printf("Current Time: %d\n", current_time);
-        print_list(fl);
         external_frag = calculate_external_fragmentation(fl);
-        average_external_frag += calculate_external_fragmentation(fl);
-        printf("External Fragmentation: %.2lf%%\n", external_frag);
+        average_external_frag += external_frag;
+        if (show_verbose && current_time % 5 == 0) {
+            printf("--------------------------------\n");
+            printf("Current Time: %d\n", current_time);
+            print_list(fl);
+            printf("External Fragmentation: %.2lf%%\n", external_frag);
+        }
         ++current_time;
     }
     pfd->average_external_frag = average_external_frag / current_time;
